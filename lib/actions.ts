@@ -20,6 +20,23 @@ export async function executeQuery(query: string) {
 
     // Get the user-specific database
     const db = await getUserDb()
+    const dbFileSize = db.pragma('page_count * page_size')[0]['page_count * page_size'] as number;
+    const MAX_DB_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
+    const isOverLimit = dbFileSize > MAX_DB_SIZE_BYTES;
+
+    const lowerCaseQuery = normalizedQuery.toLowerCase();
+    const isWriteQuery = lowerCaseQuery.startsWith('insert') || 
+                         lowerCaseQuery.startsWith('update') || 
+                         lowerCaseQuery.startsWith('create') || 
+                         lowerCaseQuery.startsWith('drop') || 
+                         lowerCaseQuery.startsWith('alter');
+
+    if (isOverLimit && isWriteQuery) {
+      db.close();
+      throw new Error(
+        `Database size limit of 50MB reached. Only SELECT and DELETE operations are allowed to free up space. Current size: ${(dbFileSize / (1024 * 1024)).toFixed(2)}MB`
+      );
+    }
 
     // For CREATE TABLE statements, check if they have column definitions
     if (normalizedQuery.toLowerCase().startsWith("create table") && !normalizedQuery.includes("(")) {

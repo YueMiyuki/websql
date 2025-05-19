@@ -27,12 +27,18 @@ export async function getUserDb() {
 
   const username = getUsernameFromEmail(session.user.email)
   const dbPath = path.join(DATA_DIR, `${username}.db`)
+  const MAX_DB_SIZE_BYTES = 50 * 1024 * 1024 // 50MB
 
   // Create a new database connection
   const db = new Database(dbPath)
 
-  // Enable foreign keys
+  // Enable foreign keys and set max page count
   db.pragma("foreign_keys = ON")
+  // Calculate max_page_count based on 50MB limit and default page size of 4096 bytes
+  const pageSizeResult = db.pragma('page_size') as { page_size: number }[];
+  const pageSize = pageSizeResult[0].page_size;
+  const maxPageCount = Math.floor(MAX_DB_SIZE_BYTES / pageSize);
+  db.pragma(`max_page_count = ${maxPageCount}`)
 
   // Initialize with some basic tables if they don't exist
   db.exec(`
