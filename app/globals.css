@@ -56,8 +56,6 @@
   --ring: #0ea5e9;
 }
 
-
-
 @layer base {
   * {
     border-color: var(--border);

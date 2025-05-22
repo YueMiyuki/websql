@@ -1,17 +1,24 @@
-"use client"
+"use client";
 
-import { motion } from "framer-motion"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Download, Copy } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { useState } from "react"
+import { motion } from "framer-motion";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Download, Copy } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 interface ResultsPanelProps {
-  results: any
+  results: any;
 }
 
 export function ResultsPanel({ results }: ResultsPanelProps) {
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied] = useState(false);
 
   if (!results) {
     return (
@@ -22,52 +29,55 @@ export function ResultsPanel({ results }: ResultsPanelProps) {
       >
         Run a query to see results
       </motion.div>
-    )
+    );
   }
 
-  const { columns, rows, message } = results
+  const { columns, rows, message } = results;
 
   const copyToClipboard = () => {
-    if (!rows || !columns) return
+    if (!rows || !columns) return;
 
-    const headers = columns.join("\t")
-    const data = rows.map((row: any) => columns.map((col: string) => row[col]).join("\t")).join("\n")
-    const text = `${headers}\n${data}`
+    const headers = columns.join("\t");
+    const data = rows
+      .map((row: any) => columns.map((col: string) => row[col]).join("\t"))
+      .join("\n");
+    const text = `${headers}\n${data}`;
 
-    navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const downloadCsv = () => {
-    if (!rows || !columns) return
+    if (!rows || !columns) return;
 
-    const headers = columns.join(",")
+    const headers = columns.join(",");
     const data = rows
       .map((row: any) =>
         columns
           .map((col: string) => {
-            const value = row[col]
+            const value = row[col];
             // Escape quotes and wrap in quotes if contains comma
-            return typeof value === "string" && (value.includes(",") || value.includes('"'))
+            return typeof value === "string" &&
+              (value.includes(",") || value.includes('"'))
               ? `"${value.replace(/"/g, '""')}"`
-              : value
+              : value;
           })
           .join(","),
       )
-      .join("\n")
+      .join("\n");
 
-    const csv = `${headers}\n${data}`
-    const blob = new Blob([csv], { type: "text/csv" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `sqlite-export-${new Date().toISOString().slice(0, 10)}.csv`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  }
+    const csv = `${headers}\n${data}`;
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `sqlite-export-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <motion.div
@@ -93,7 +103,12 @@ export function ResultsPanel({ results }: ResultsPanelProps) {
               Results: {rows.length} row{rows.length !== 1 ? "s" : ""}
             </h3>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" className="gap-1" onClick={copyToClipboard}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1"
+                onClick={copyToClipboard}
+              >
                 {copied ? (
                   "Copied!"
                 ) : (
@@ -103,7 +118,12 @@ export function ResultsPanel({ results }: ResultsPanelProps) {
                   </>
                 )}
               </Button>
-              <Button variant="outline" size="sm" className="gap-1" onClick={downloadCsv}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1"
+                onClick={downloadCsv}
+              >
                 <Download className="h-3 w-3" />
                 Export CSV
               </Button>
@@ -127,7 +147,9 @@ export function ResultsPanel({ results }: ResultsPanelProps) {
                     {columns.map((column: string) => (
                       <TableCell key={column} className="font-mono">
                         {row[column] === null ? (
-                          <span className="text-muted-foreground italic">NULL</span>
+                          <span className="text-muted-foreground italic">
+                            NULL
+                          </span>
                         ) : typeof row[column] === "object" ? (
                           JSON.stringify(row[column])
                         ) : (
@@ -147,5 +169,5 @@ export function ResultsPanel({ results }: ResultsPanelProps) {
         </div>
       ) : null}
     </motion.div>
-  )
+  );
 }
