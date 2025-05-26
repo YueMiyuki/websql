@@ -54,12 +54,11 @@ export async function executeQuery(query: string) {
         lowerCaseQuery.startsWith("insert") ||
         lowerCaseQuery.startsWith("update") ||
         lowerCaseQuery.startsWith("create") ||
-        lowerCaseQuery.startsWith("drop") ||
         lowerCaseQuery.startsWith("alter");
 
       if (isOverLimit && isWriteQuery) {
         throw new Error(
-          `Database size limit of 50MB reached. Only SELECT and DELETE operations are allowed to free up space. Current size: ${(dbFileSize / (1024 * 1024)).toFixed(2)}MB`,
+          `Database size limit of 50MB reached. Only SELECT, DELETE and DROP operations are allowed to free up space. Current size: ${(dbFileSize / (1024 * 1024)).toFixed(2)}MB`,
         );
       }
 
