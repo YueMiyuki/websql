@@ -92,7 +92,15 @@ export function ResultsPanel({ results }: ResultsPanelProps) {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          {message}
+          {typeof message === "string"
+            ? message.split(/\.\s+/).map((line, idx, arr) => (
+                <span key={idx}>
+                  {line}
+                  {idx < arr.length - 1 ? "." : ""}
+                  <br />
+                </span>
+              ))
+            : message}
         </motion.div>
       )}
 

@@ -188,18 +188,6 @@ export function CommandPanel({
               </li>
               <li
                 className="cursor-pointer hover:text-foreground"
-                onClick={() => setQuery("SELECT * FROM users LIMIT 10;")}
-              >
-                • View users
-              </li>
-              <li
-                className="cursor-pointer hover:text-foreground"
-                onClick={() => setQuery("SELECT * FROM products LIMIT 10;")}
-              >
-                • View products
-              </li>
-              <li
-                className="cursor-pointer hover:text-foreground"
                 onClick={() =>
                   setQuery(
                     "CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT);",
