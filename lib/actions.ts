@@ -34,9 +34,9 @@ export async function executeQuery(query: string) {
 
     db = await getUserDb(); // Open DB connection once for all queries
 
-    const batchResults = [];
     let lastSelectResult = null;
     let changesAccumulator = 0;
+    // eslint-disable-next-line prefer-const
     let messagesAccumulator = [];
 
     for (const singleQuery of queries) {
@@ -104,7 +104,7 @@ export async function executeQuery(query: string) {
     // If there was a SELECT query, return its results (typically the last one executed)
     if (lastSelectResult) {
       // Append a summary message if multiple commands were run
-      console.log(queries.length);
+      // console.log(queries.length);
       if (queries.length > 1) {
         lastSelectResult.message = `Batch of ${queries.length} queries executed. ${messagesAccumulator.join(" ")} Last SELECT query returned ${lastSelectResult.rows.length} row(s). Total changes: ${changesAccumulator}.`;
       }

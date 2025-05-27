@@ -12,6 +12,7 @@ export const authOptions: NextAuthOptions = {
     signIn: "/auth/signin",
   },
   callbacks: {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async session({ session, token }) {
       return session;
     },

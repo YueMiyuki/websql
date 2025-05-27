@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
 :root {
+  --background-start: #ffffff;
+  --background-via: #f1f5f9;
+  --background-end: #e2e8f0;
   --background: #ffffff;
   --foreground: #171717;
 
@@ -10,7 +13,7 @@
   --popover: #ffffff;
   --popover-foreground: #171717;
   --primary: #0284c7;
-  --primary-foreground: #f8fafc;
+  --primary-foreground: #171717; /* changed from #f8fafc to dark text for contrast */
   --secondary: #f1f5f9;
   --secondary-foreground: #1e293b;
   --muted: #f1f5f9;
@@ -18,21 +21,19 @@
   --accent: #f1f5f9;
   --accent-foreground: #1e293b;
   --destructive: #ef4444;
-  --destructive-foreground: #f8fafc;
+  --destructive-foreground: #171717; /* changed from #f8fafc to dark text for contrast */
+  --success: #d1fae5;
+  --success-foreground: #065f46;
   --border: #e2e8f0;
   --input: #e2e8f0;
   --ring: #0284c7;
   --radius: 0.5rem;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-[data-theme="dark"] {
+.dark {
+  --background-start: #0a0a0a;
+  --background-via: #1e293b;
+  --background-end: #0f172a;
   --background: #0a0a0a;
   --foreground: #ededed;
 
@@ -51,9 +52,18 @@
   --accent-foreground: #f8fafc;
   --destructive: #7f1d1d;
   --destructive-foreground: #f8fafc;
+  --success: #134e4a;
+  --success-foreground: #6ee7b7;
   --border: #1e293b;
   --input: #1e293b;
   --ring: #0ea5e9;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
 }
 
 @layer base {
@@ -68,15 +78,137 @@
 }
 
 /* Fix for dropdown transparency */
-[data-theme="dark"] [data-radix-popper-content-wrapper] > div {
+.dark [data-radix-popper-content-wrapper] > div {
   background-color: var(--popover) !important;
 }
 
-[data-theme="light"] [data-radix-popper-content-wrapper] > div {
+[data-radix-popper-content-wrapper] > div {
   background-color: var(--popover) !important;
 }
 
 /* Ensure dropdown menu has proper background */
 .dropdown-menu-content {
   background-color: var(--popover) !important;
+}
+
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d8d9db;
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #4b5563;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* Smooth animations */
+* {
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Glass effect utilities */
+.glass {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.glass-border {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Floating animation keyframes */
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Pulse glow effect */
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Success badge styles for better visibility in light mode */
+.badge-success {
+  background-color: rgba(34,197,94,0.18) !important; /* green with more opacity */
+  color: #15803d !important; /* strong green text */
+  border: 1px solid #22c55e !important;
+}
+
+/* General badge improvements for contrast */
+.badge {
+  color: var(--foreground) !important;
+  background: var(--secondary) !important;
+  border: 1px solid var(--border) !important;
+}
+
+/* Selector and dropdown improvements */
+select, .selector {
+  background: var(--input) !important;
+  color: var(--foreground) !important;
+  border: 1px solid var(--border) !important;
+}
+
+[data-radix-popper-content-wrapper] > div {
+  background-color: var(--popover) !important;
+  color: var(--popover-foreground) !important;
+}
+
+.dropdown-menu-content {
+  background-color: var(--popover) !important;
+  color: var(--popover-foreground) !important;
+}
+
+/* Ensure text is always visible */
+body, label, input, select, textarea, button {
+  color: var(--foreground) !important;
+}
+
+/* Fix for muted/disabled text */
+.muted, .text-muted, [aria-disabled="true"] {
+  color: var(--muted-foreground) !important;
+}
+
+.success-message {
+  color: var(--success-foreground, var(--primary));
+  background: var(--success, #d1fae5);
+  border-radius: var(--radius);
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
 }

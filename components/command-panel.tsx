@@ -1,41 +1,28 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Play,
-  History,
-  X,
-  ChevronRight,
-  Database,
-  Table,
-  Info,
-} from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useRouter } from "next/navigation";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { useState } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import { Play, History, X, ChevronRight, Database, Table, Info, Sparkles } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useRouter } from "next/navigation"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
-interface CommandPanelProps {
-  query: string;
-  setQuery: (query: string) => void;
-  runQuery: () => Promise<void>;
-  history: string[];
-  loading: boolean;
-  dbInfo: any;
-  dbInfoLoading: boolean;
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
+interface FloatingCommandPanelProps {
+  query: string
+  setQuery: (query: string) => void
+  runQuery: () => Promise<void>
+  history: string[]
+  loading: boolean
+  dbInfo: any
+  dbInfoLoading: boolean
+  activeTab: string
+  setActiveTab: (tab: string) => void
 }
 
-export function CommandPanel({
+export function FloatingCommandPanel({
   query,
   setQuery,
   runQuery,
@@ -45,241 +32,334 @@ export function CommandPanel({
   dbInfoLoading,
   activeTab,
   setActiveTab,
-}: CommandPanelProps) {
-  const [showHistory, setShowHistory] = useState(false);
-  const router = useRouter();
+}: FloatingCommandPanelProps) {
+  const [showHistory, setShowHistory] = useState(false)
+  const router = useRouter()
 
-  // Function to handle viewing table data or structure
   const handleTableAction = (action: string, table: string) => {
     if (action === "data") {
-      setQuery(`SELECT * FROM ${table} LIMIT 100;`);
+      setQuery(`SELECT * FROM ${table} LIMIT 100;`)
     } else if (action === "structure") {
-      setQuery(`PRAGMA table_info(${table});`);
+      setQuery(`PRAGMA table_info(${table});`)
     }
-    setActiveTab("query");
-    // Force a rerender to ensure the tab change takes effect
-    router.refresh();
-  };
+    setActiveTab("query")
+    router.refresh()
+  }
 
   return (
     <motion.div
-      className="w-[400px] border-r bg-muted/40 p-4 flex flex-col"
-      initial={{ x: -20, opacity: 0 }}
+      className="fixed left-6 top-24 bottom-6 w-[420px] z-40"
+      initial={{ x: -100, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
-      transition={{ duration: 0.3 }}
+      transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
     >
-      <Tabs
-        value={activeTab}
-        onValueChange={setActiveTab}
-        className="flex-1 flex flex-col"
+      <motion.div
+        className="h-full bg-[var(--card)]/90 backdrop-blur-xl border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-xl"
+        whileHover={{
+          y: -4,
+          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.15)",
+        }}
+        transition={{ duration: 0.3 }}
       >
-        <TabsList className="grid grid-cols-2 mb-4">
-          <TabsTrigger value="query">SQL Query</TabsTrigger>
-          <TabsTrigger value="schema">Database Schema</TabsTrigger>
-        </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+          <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}>
+            <TabsList className="grid grid-cols-2 mb-6 bg-accent border border-border">
+              <TabsTrigger
+                value="query"
+                className="data-[state=active]:bg-background data-[state=active]:shadow-sm text-foreground data-[state=active]:text-foreground"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                SQL Query
+              </TabsTrigger>
+              <TabsTrigger
+                value="schema"
+                className="data-[state=active]:bg-background data-[state=active]:shadow-sm text-foreground data-[state=active]:text-foreground"
+              >
+                <Database className="h-4 w-4 mr-2" />
+                Schema
+              </TabsTrigger>
+            </TabsList>
+          </motion.div>
 
-        <TabsContent value="query" className="flex-1 flex flex-col">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-semibold">SQL Commands</h2>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-sm">
-                    <p>
-                      Make sure your SQL statements end with a semicolon (;)
-                    </p>
-                    <p className="mt-1">
-                      For CREATE TABLE statements, include column definitions in
-                      parentheses.
-                    </p>
-                    <p className="mt-1">
-                      Example: CREATE TABLE test (id INTEGER PRIMARY KEY, name
-                      TEXT);
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowHistory(!showHistory)}
-            >
-              <History className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {showHistory && (
+          <TabsContent value="query" className="flex-1 flex flex-col">
             <motion.div
-              className="mb-4 border rounded-md bg-card"
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
+              className="flex items-center justify-between mb-4"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.5 }}
             >
-              <div className="p-2 border-b flex items-center justify-between">
-                <span className="text-sm font-medium">History</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6"
-                  onClick={() => setShowHistory(false)}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-semibold text-foreground">SQL Commands</h2>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <motion.div whileHover={{ scale: 1.1 }}>
+                        <Info className="h-4 w-4 text-gray-500 dark:text-gray-400 cursor-help" />
+                      </motion.div>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-sm bg-white/95 dark:bg-gray-900/95 backdrop-blur border-gray-200 dark:border-gray-700">
+                      <p>Make sure your SQL statements end with a semicolon (;)</p>
+                      <p className="mt-1">For CREATE TABLE statements, include column definitions in parentheses.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
-              <div className="max-h-[200px] overflow-y-auto">
-                {history.length === 0 ? (
-                  <p className="p-3 text-sm text-muted-foreground">
-                    No history yet
-                  </p>
-                ) : (
-                  <ul className="divide-y">
-                    {history.map((item, i) => (
-                      <motion.li
-                        key={i}
-                        whileHover={{ backgroundColor: "rgba(0,0,0,0.05)" }}
-                        className="p-2 text-sm cursor-pointer flex items-center"
-                        onClick={() => setQuery(item)}
-                      >
-                        <ChevronRight className="h-3 w-3 mr-1 text-muted-foreground" />
-                        <span className="truncate">{item}</span>
-                      </motion.li>
-                    ))}
-                  </ul>
-                )}
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setShowHistory(!showHistory)}
+                  className="border-gray-300 dark:border-gray-600 hover:bg-gray-700 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white text-gray-700 dark:text-gray-300 transition-colors"
+                >
+                  <History className="h-4 w-4" />
+                </Button>
+              </motion.div>
+            </motion.div>
+
+            <AnimatePresence>
+              {showHistory && (
+                <motion.div
+                  className="mb-4 border rounded-xl overflow-hidden"
+                  style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="p-3 border-b flex items-center justify-between" style={{ borderColor: 'var(--border)', background: 'var(--secondary)' }}>
+                    <span className="text-sm font-medium" style={{ color: 'var(--card-foreground)' }}>History</span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-6 w-6"
+                      style={{ borderColor: 'var(--border)', color: 'var(--card-foreground)' }}
+                      onClick={() => setShowHistory(false)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <div className={history.length > 2 ? "max-h-[200px] overflow-y-auto" : ""} style={{ background: 'var(--card)' }}>
+                    {history.length === 0 ? (
+                      <p className="p-3 text-sm" style={{ color: 'var(--muted-foreground)' }}>No history yet</p>
+                    ) : (
+                      <ul className="divide-y" style={{ borderColor: 'var(--border)' }}>
+                        {history.map((item, i) => (
+                          <motion.li
+                            key={i}
+                            whileHover={{ backgroundColor: "var(--accent)", color: "var(--accent-foreground)" }}
+                            className="p-3 text-sm cursor-pointer flex items-center transition-colors"
+                            style={{ color: 'var(--card-foreground)' }}
+                            onClick={() => setQuery(item)}
+                          >
+                            <ChevronRight className="h-3 w-3 mr-2" style={{ color: 'var(--muted-foreground)' }} />
+                            <span className="truncate">{item}</span>
+                          </motion.li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.6 }}
+              className="flex-1 mb-4"
+            >
+              <Textarea
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Enter SQL query..."
+                className="h-full font-mono text-sm resize-none border-input bg-background focus:bg-background transition-colors text-foreground placeholder:text-muted-foreground"
+              />
+            </motion.div>
+
+            <motion.div
+              className="flex justify-between gap-3"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.7 }}
+            >
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  variant="outline"
+                  onClick={() => setQuery("")}
+                  className="border-gray-300 dark:border-gray-600 hover:bg-gray-700 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white text-gray-700 dark:text-gray-300 transition-colors"
+                >
+                  Clear
+                </Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  onClick={runQuery}
+                  disabled={loading || !query.trim()}
+                  className="gap-2 bg-green-600 hover:bg-green-700 text-white shadow-lg"
+                >
+                  <motion.div
+                    animate={loading ? { rotate: 360 } : {}}
+                    transition={{ duration: 1, repeat: loading ? Number.POSITIVE_INFINITY : 0 }}
+                  >
+                    <Play className="h-4 w-4" />
+                  </motion.div>
+                  <span style={{ color: '#fff' }}>Run Query</span>
+                </Button>
+              </motion.div>
+            </motion.div>
+
+            <motion.div
+              className="mt-6 text-sm"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.8 }}
+            >
+              <p className="font-medium mb-2 text-foreground">Example queries:</p>
+              <div className="max-h-[100px] overflow-y-auto">
+                <ul className="space-y-1">
+                  {[
+                    {
+                      text: "Show all tables",
+                      query: "SELECT name FROM sqlite_master WHERE type='table';",
+                    },
+                    {
+                      text: "Create test table",
+                      query: "CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT);",
+                    },
+                  ].map((example, i) => (
+                    <motion.li
+                      key={i}
+                      className="cursor-pointer transition-colors p-1 rounded text-black dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-black dark:hover:text-gray-100"
+                      onClick={() => setQuery(example.query)}
+                      whileHover={{ x: 4 }}
+                      style={{ fontSize: '0.95rem', lineHeight: 1.3 }}
+                    >
+                      • {example.text}
+                    </motion.li>
+                  ))}
+                </ul>
               </div>
             </motion.div>
-          )}
+          </TabsContent>
 
-          <Textarea
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Enter SQL query..."
-            className="flex-1 min-h-[200px] font-mono text-sm resize-none mb-4"
-          />
-
-          <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setQuery("")}>
-              Clear
-            </Button>
-            <Button
-              onClick={runQuery}
-              disabled={loading || !query.trim()}
-              className="gap-2"
+          <TabsContent value="schema" className="flex-1 flex flex-col">
+            <motion.div
+              className="flex items-center gap-2 mb-6"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.5 }}
             >
-              <Play className="h-4 w-4" />
-              Run Query
-            </Button>
-          </div>
+              <Database className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <h2 className="text-lg font-semibold text-foreground">Database Schema</h2>
+            </motion.div>
 
-          <div className="mt-4 text-sm text-muted-foreground">
-            <p className="font-medium">Example queries:</p>
-            <ul className="mt-1 space-y-1">
-              <li
-                className="cursor-pointer hover:text-foreground"
-                onClick={() =>
-                  setQuery("SELECT name FROM sqlite_master WHERE type='table';")
-                }
+            {dbInfoLoading ? (
+              <motion.div className="space-y-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                <Skeleton className="h-4 w-full bg-gray-200 dark:bg-gray-800" />
+                <Skeleton className="h-4 w-3/4 bg-gray-200 dark:bg-gray-800" />
+                <Skeleton className="h-4 w-5/6 bg-gray-200 dark:bg-gray-800" />
+              </motion.div>
+            ) : dbInfo?.tables?.length > 0 ? (
+              <motion.div
+                className="space-y-4"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.6 }}
               >
-                • Show all tables
-              </li>
-              <li
-                className="cursor-pointer hover:text-foreground"
-                onClick={() =>
-                  setQuery(
-                    "CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT);",
-                  )
-                }
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Your database contains {dbInfo.tableCount} table
+                  {dbInfo.tableCount !== 1 ? "s" : ""}.
+                </p>
+
+                <div className="space-y-3">
+                  {dbInfo.tables.map((table: string, index: number) => (
+                    <motion.div
+                      key={table}
+                      className="border border-border rounded-xl p-4 bg-background"
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.7 + index * 0.1 }}
+                      whileHover={{
+                        y: -2,
+                        boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)",
+                      }}
+                    >
+                      <div className="flex items-center gap-2 mb-3">
+                        <Table className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                        <h3 className="font-medium text-foreground">{table}</h3>
+                      </div>
+                      <div className="flex gap-2">
+                        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs border-border hover:bg-accent text-foreground"
+                            onClick={() => handleTableAction("data", table)}
+                          >
+                            View Data
+                          </Button>
+                        </motion.div>
+                        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs border-border hover:bg-accent text-foreground"
+                            onClick={() => handleTableAction("structure", table)}
+                          >
+                            View Structure
+                          </Button>
+                        </motion.div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                className="flex flex-col items-center justify-center h-full text-center p-4"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.6 }}
               >
-                • Create test table
-              </li>
-            </ul>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="schema" className="flex-1 flex flex-col">
-          <div className="flex items-center gap-2 mb-4">
-            <Database className="h-4 w-4 text-primary" />
-            <h2 className="text-lg font-semibold">Database Schema</h2>
-          </div>
-
-          {dbInfoLoading ? (
-            <div className="space-y-3">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-4 w-5/6" />
-            </div>
-          ) : dbInfo?.tables?.length > 0 ? (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Your database contains {dbInfo.tableCount} table
-                {dbInfo.tableCount !== 1 ? "s" : ""}.
-              </p>
-
-              <div className="space-y-3">
-                {dbInfo.tables.map((table: string) => (
-                  <motion.div
-                    key={table}
-                    className="border rounded-md p-3 bg-card"
-                    whileHover={{
-                      y: -2,
-                      boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                    }}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Table className="h-4 w-4 text-primary" />
-                      <h3 className="font-medium">{table}</h3>
-                    </div>
-                    <div className="mt-2 flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-xs"
-                        onClick={() => handleTableAction("data", table)}
-                      >
-                        View Data
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-xs"
-                        onClick={() => handleTableAction("structure", table)}
-                      >
-                        View Structure
-                      </Button>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full text-center p-4">
-              <Database className="h-12 w-12 text-muted-foreground mb-2 opacity-20" />
-              <h3 className="text-lg font-medium">No tables found</h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                Your database is empty. Create your first table to get started.
-              </p>
-              <Button
-                className="mt-4"
-                onClick={() => {
-                  setQuery(`CREATE TABLE users (
+                <motion.div
+                  animate={{
+                    scale: [1, 1.1, 1],
+                    opacity: [0.3, 0.6, 0.3],
+                  }}
+                  transition={{
+                    duration: 3,
+                    repeat: Number.POSITIVE_INFINITY,
+                    ease: "easeInOut",
+                  }}
+                >
+                  <Database className="h-16 w-16 text-muted-foreground mb-4" />
+                </motion.div>
+                <h3 className="text-lg font-medium text-foreground">No tables found</h3>
+                <p className="text-sm text-muted-foreground mt-2 mb-4">
+                  Your database is empty. Create your first table to get started.
+                </p>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button
+                    className="bg-green-600 hover:bg-green-700 text-white shadow-lg"
+                    onClick={() => {
+                      setQuery(`CREATE TABLE users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
   email TEXT UNIQUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);`);
-                  setActiveTab("query");
-                }}
-              >
-                Create Sample Table
-              </Button>
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+);`)
+                      setActiveTab("query")
+                    }}
+                  >
+                    Create Sample Table
+                  </Button>
+                </motion.div>
+              </motion.div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </motion.div>
     </motion.div>
-  );
+  )
 }
+
