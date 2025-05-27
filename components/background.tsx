@@ -1,20 +1,20 @@
-"use client"
+"use client";
 
-import { motion } from "framer-motion"
-import { useEffect, useState } from "react"
+import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 
 interface Orb {
-  id: number
-  width: number
-  height: number
-  left: string
-  top: string
-  duration: number
-  delay: number
+  id: number;
+  width: number;
+  height: number;
+  left: string;
+  top: string;
+  duration: number;
+  delay: number;
 }
 
 export function AnimatedBackground() {
-  const [orbs, setOrbs] = useState<Orb[]>([])
+  const [orbs, setOrbs] = useState<Orb[]>([]);
 
   useEffect(() => {
     // Generate orbs on client side only to avoid hydration mismatch
@@ -26,9 +26,9 @@ export function AnimatedBackground() {
       top: `${Math.random() * 100}%`,
       duration: Math.random() * 10 + 10,
       delay: Math.random() * 2,
-    }))
-    setOrbs(generatedOrbs)
-  }, [])
+    }));
+    setOrbs(generatedOrbs);
+  }, []);
 
   return (
     <div className="fixed inset-0 -z-10 overflow-hidden">
@@ -36,10 +36,24 @@ export function AnimatedBackground() {
       <div className="absolute inset-0 bg-gradient-to-br from-[var(--background-start)] via-[var(--background-via)] to-[var(--background-end)]" />
 
       {/* Animated ray grid */}
-      <svg className="absolute inset-0 w-full h-full opacity-30 dark:opacity-20" xmlns="http://www.w3.org/2000/svg">
+      <svg
+        className="absolute inset-0 w-full h-full opacity-30 dark:opacity-20"
+        xmlns="http://www.w3.org/2000/svg"
+      >
         <defs>
-          <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
-            <path d="M 60 0 L 0 0 0 60" fill="none" stroke="#d1d5db" strokeWidth="1" className="dark:stroke-gray-700" />
+          <pattern
+            id="grid"
+            width="60"
+            height="60"
+            patternUnits="userSpaceOnUse"
+          >
+            <path
+              d="M 60 0 L 0 0 0 60"
+              fill="none"
+              stroke="#d1d5db"
+              strokeWidth="1"
+              className="dark:stroke-gray-700"
+            />
           </pattern>
           <radialGradient id="fade" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="white" stopOpacity="1" />
@@ -80,7 +94,11 @@ export function AnimatedBackground() {
       <motion.div
         className="absolute inset-0"
         animate={{ rotate: 360 }}
-        transition={{ duration: 120, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+        transition={{
+          duration: 120,
+          repeat: Number.POSITIVE_INFINITY,
+          ease: "linear",
+        }}
       >
         {[...Array(12)].map((_, i) => (
           <motion.div
@@ -103,5 +121,5 @@ export function AnimatedBackground() {
         ))}
       </motion.div>
     </div>
-  )
+  );
 }

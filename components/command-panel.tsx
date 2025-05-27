@@ -1,25 +1,39 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { Play, History, X, ChevronRight, Database, Table, Info, Sparkles } from "lucide-react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Skeleton } from "@/components/ui/skeleton"
-import { useRouter } from "next/navigation"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Play,
+  History,
+  X,
+  ChevronRight,
+  Database,
+  Table,
+  Info,
+  Sparkles,
+} from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useRouter } from "next/navigation";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface FloatingCommandPanelProps {
-  query: string
-  setQuery: (query: string) => void
-  runQuery: () => Promise<void>
-  history: string[]
-  loading: boolean
-  dbInfo: any
-  dbInfoLoading: boolean
-  activeTab: string
-  setActiveTab: (tab: string) => void
+  query: string;
+  setQuery: (query: string) => void;
+  runQuery: () => Promise<void>;
+  history: string[];
+  loading: boolean;
+  dbInfo: any;
+  dbInfoLoading: boolean;
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
 }
 
 export function FloatingCommandPanel({
@@ -33,18 +47,18 @@ export function FloatingCommandPanel({
   activeTab,
   setActiveTab,
 }: FloatingCommandPanelProps) {
-  const [showHistory, setShowHistory] = useState(false)
-  const router = useRouter()
+  const [showHistory, setShowHistory] = useState(false);
+  const router = useRouter();
 
   const handleTableAction = (action: string, table: string) => {
     if (action === "data") {
-      setQuery(`SELECT * FROM ${table} LIMIT 100;`)
+      setQuery(`SELECT * FROM ${table} LIMIT 100;`);
     } else if (action === "structure") {
-      setQuery(`PRAGMA table_info(${table});`)
+      setQuery(`PRAGMA table_info(${table});`);
     }
-    setActiveTab("query")
-    router.refresh()
-  }
+    setActiveTab("query");
+    router.refresh();
+  };
 
   return (
     <motion.div
@@ -61,8 +75,16 @@ export function FloatingCommandPanel({
         }}
         transition={{ duration: 0.3 }}
       >
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-          <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}>
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="h-full flex flex-col"
+        >
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.4 }}
+          >
             <TabsList className="grid grid-cols-2 mb-6 bg-accent border border-border">
               <TabsTrigger
                 value="query"
@@ -89,7 +111,9 @@ export function FloatingCommandPanel({
               transition={{ delay: 0.5 }}
             >
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-semibold text-foreground">SQL Commands</h2>
+                <h2 className="text-lg font-semibold text-foreground">
+                  SQL Commands
+                </h2>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -98,13 +122,21 @@ export function FloatingCommandPanel({
                       </motion.div>
                     </TooltipTrigger>
                     <TooltipContent className="max-w-sm bg-white/95 dark:bg-gray-900/95 backdrop-blur border-gray-200 dark:border-gray-700">
-                      <p>Make sure your SQL statements end with a semicolon (;)</p>
-                      <p className="mt-1">For CREATE TABLE statements, include column definitions in parentheses.</p>
+                      <p>
+                        Make sure your SQL statements end with a semicolon (;)
+                      </p>
+                      <p className="mt-1">
+                        For CREATE TABLE statements, include column definitions
+                        in parentheses.
+                      </p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               </div>
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
                 <Button
                   variant="outline"
                   size="icon"
@@ -120,38 +152,74 @@ export function FloatingCommandPanel({
               {showHistory && (
                 <motion.div
                   className="mb-4 border rounded-xl overflow-hidden"
-                  style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
+                  style={{
+                    background: "var(--card)",
+                    borderColor: "var(--border)",
+                  }}
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <div className="p-3 border-b flex items-center justify-between" style={{ borderColor: 'var(--border)', background: 'var(--secondary)' }}>
-                    <span className="text-sm font-medium" style={{ color: 'var(--card-foreground)' }}>History</span>
+                  <div
+                    className="p-3 border-b flex items-center justify-between"
+                    style={{
+                      borderColor: "var(--border)",
+                      background: "var(--secondary)",
+                    }}
+                  >
+                    <span
+                      className="text-sm font-medium"
+                      style={{ color: "var(--card-foreground)" }}
+                    >
+                      History
+                    </span>
                     <Button
                       variant="outline"
                       size="icon"
                       className="h-6 w-6"
-                      style={{ borderColor: 'var(--border)', color: 'var(--card-foreground)' }}
+                      style={{
+                        borderColor: "var(--border)",
+                        color: "var(--card-foreground)",
+                      }}
                       onClick={() => setShowHistory(false)}
                     >
                       <X className="h-3 w-3" />
                     </Button>
                   </div>
-                  <div className={history.length > 2 ? "max-h-[200px] overflow-y-auto" : ""} style={{ background: 'var(--card)' }}>
+                  <div
+                    className={
+                      history.length > 2 ? "max-h-[200px] overflow-y-auto" : ""
+                    }
+                    style={{ background: "var(--card)" }}
+                  >
                     {history.length === 0 ? (
-                      <p className="p-3 text-sm" style={{ color: 'var(--muted-foreground)' }}>No history yet</p>
+                      <p
+                        className="p-3 text-sm"
+                        style={{ color: "var(--muted-foreground)" }}
+                      >
+                        No history yet
+                      </p>
                     ) : (
-                      <ul className="divide-y" style={{ borderColor: 'var(--border)' }}>
+                      <ul
+                        className="divide-y"
+                        style={{ borderColor: "var(--border)" }}
+                      >
                         {history.map((item, i) => (
                           <motion.li
                             key={i}
-                            whileHover={{ backgroundColor: "var(--accent)", color: "var(--accent-foreground)" }}
+                            whileHover={{
+                              backgroundColor: "var(--accent)",
+                              color: "var(--accent-foreground)",
+                            }}
                             className="p-3 text-sm cursor-pointer flex items-center transition-colors"
-                            style={{ color: 'var(--card-foreground)' }}
+                            style={{ color: "var(--card-foreground)" }}
                             onClick={() => setQuery(item)}
                           >
-                            <ChevronRight className="h-3 w-3 mr-2" style={{ color: 'var(--muted-foreground)' }} />
+                            <ChevronRight
+                              className="h-3 w-3 mr-2"
+                              style={{ color: "var(--muted-foreground)" }}
+                            />
                             <span className="truncate">{item}</span>
                           </motion.li>
                         ))}
@@ -182,7 +250,10 @@ export function FloatingCommandPanel({
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.7 }}
             >
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
                 <Button
                   variant="outline"
                   onClick={() => setQuery("")}
@@ -191,7 +262,10 @@ export function FloatingCommandPanel({
                   Clear
                 </Button>
               </motion.div>
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
                 <Button
                   onClick={runQuery}
                   disabled={loading || !query.trim()}
@@ -199,11 +273,14 @@ export function FloatingCommandPanel({
                 >
                   <motion.div
                     animate={loading ? { rotate: 360 } : {}}
-                    transition={{ duration: 1, repeat: loading ? Number.POSITIVE_INFINITY : 0 }}
+                    transition={{
+                      duration: 1,
+                      repeat: loading ? Number.POSITIVE_INFINITY : 0,
+                    }}
                   >
                     <Play className="h-4 w-4" />
                   </motion.div>
-                  <span style={{ color: '#fff' }}>Run Query</span>
+                  <span style={{ color: "#fff" }}>Run Query</span>
                 </Button>
               </motion.div>
             </motion.div>
@@ -214,17 +291,21 @@ export function FloatingCommandPanel({
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.8 }}
             >
-              <p className="font-medium mb-2 text-foreground">Example queries:</p>
-              <div className="max-h-[100px] overflow-y-auto">
+              <p className="font-medium mb-2 text-foreground">
+                Example queries:
+              </p>
+              <div className="max-h-[100px] overflow-y-auto overflow-x-hidden">
                 <ul className="space-y-1">
                   {[
                     {
                       text: "Show all tables",
-                      query: "SELECT name FROM sqlite_master WHERE type='table';",
+                      query:
+                        "SELECT name FROM sqlite_master WHERE type='table';",
                     },
                     {
                       text: "Create test table",
-                      query: "CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT);",
+                      query:
+                        "CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT);",
                     },
                   ].map((example, i) => (
                     <motion.li
@@ -232,7 +313,7 @@ export function FloatingCommandPanel({
                       className="cursor-pointer transition-colors p-1 rounded text-black dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-black dark:hover:text-gray-100"
                       onClick={() => setQuery(example.query)}
                       whileHover={{ x: 4 }}
-                      style={{ fontSize: '0.95rem', lineHeight: 1.3 }}
+                      style={{ fontSize: "0.95rem", lineHeight: 1.3 }}
                     >
                       • {example.text}
                     </motion.li>
@@ -250,11 +331,17 @@ export function FloatingCommandPanel({
               transition={{ delay: 0.5 }}
             >
               <Database className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              <h2 className="text-lg font-semibold text-foreground">Database Schema</h2>
+              <h2 className="text-lg font-semibold text-foreground">
+                Database Schema
+              </h2>
             </motion.div>
 
             {dbInfoLoading ? (
-              <motion.div className="space-y-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <motion.div
+                className="space-y-3"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+              >
                 <Skeleton className="h-4 w-full bg-gray-200 dark:bg-gray-800" />
                 <Skeleton className="h-4 w-3/4 bg-gray-200 dark:bg-gray-800" />
                 <Skeleton className="h-4 w-5/6 bg-gray-200 dark:bg-gray-800" />
@@ -289,7 +376,10 @@ export function FloatingCommandPanel({
                         <h3 className="font-medium text-foreground">{table}</h3>
                       </div>
                       <div className="flex gap-2">
-                        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                        <motion.div
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
                           <Button
                             variant="outline"
                             size="sm"
@@ -299,12 +389,17 @@ export function FloatingCommandPanel({
                             View Data
                           </Button>
                         </motion.div>
-                        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                        <motion.div
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
                           <Button
                             variant="outline"
                             size="sm"
                             className="text-xs border-border hover:bg-accent text-foreground"
-                            onClick={() => handleTableAction("structure", table)}
+                            onClick={() =>
+                              handleTableAction("structure", table)
+                            }
                           >
                             View Structure
                           </Button>
@@ -334,11 +429,17 @@ export function FloatingCommandPanel({
                 >
                   <Database className="h-16 w-16 text-muted-foreground mb-4" />
                 </motion.div>
-                <h3 className="text-lg font-medium text-foreground">No tables found</h3>
+                <h3 className="text-lg font-medium text-foreground">
+                  No tables found
+                </h3>
                 <p className="text-sm text-muted-foreground mt-2 mb-4">
-                  Your database is empty. Create your first table to get started.
+                  Your database is empty. Create your first table to get
+                  started.
                 </p>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
                   <Button
                     className="bg-green-600 hover:bg-green-700 text-white shadow-lg"
                     onClick={() => {
@@ -347,8 +448,8 @@ export function FloatingCommandPanel({
   name TEXT NOT NULL,
   email TEXT UNIQUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);`)
-                      setActiveTab("query")
+);`);
+                      setActiveTab("query");
                     }}
                   >
                     Create Sample Table
@@ -360,6 +461,5 @@ export function FloatingCommandPanel({
         </Tabs>
       </motion.div>
     </motion.div>
-  )
+  );
 }
-
