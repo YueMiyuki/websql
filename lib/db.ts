@@ -263,7 +263,7 @@ if (typeof process !== "undefined") {
       shutdownIdleContainers().catch((err) => {
         console.error("[MariaDB] Error in shutdownIdleContainers:", err);
       });
-    }, 1000);
+    }, 60 * 1000);
   } else {
     console.log(
       "[MariaDB] Idle container shutdown scheduler is disabled (MARIADB_IDLE_TIMEOUT_MINUTES=0)",
