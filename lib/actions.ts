@@ -12,7 +12,7 @@ export async function executeQuery(query: string) {
     throw new Error("Authentication required");
   }
   const username = session.user.email.split("@")[0]; // For logging
-  let db;
+  let pool;
 
   try {
     console.log(`[${username}.db] Executing query batch:`, query);
@@ -32,7 +32,7 @@ export async function executeQuery(query: string) {
       };
     }
 
-    db = await getUserDb(); // Open DB connection once for all queries
+    pool = await getUserDb();
 
     let lastSelectResult = null;
     let changesAccumulator = 0;
@@ -43,12 +43,6 @@ export async function executeQuery(query: string) {
       // No need to normalize again as it's done during splitting
       console.log(`[${username}.db] Executing single query:`, singleQuery);
 
-      const pageCount = db.pragma("page_count", { simple: true }) as number;
-      const pageSize = db.pragma("page_size", { simple: true }) as number;
-      const dbFileSize = pageCount * pageSize;
-      const MAX_DB_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
-      const isOverLimit = dbFileSize > MAX_DB_SIZE_BYTES;
-
       const lowerCaseQuery = singleQuery.toLowerCase();
       const isWriteQuery =
         lowerCaseQuery.startsWith("insert") ||
@@ -56,10 +50,18 @@ export async function executeQuery(query: string) {
         lowerCaseQuery.startsWith("create") ||
         lowerCaseQuery.startsWith("alter");
 
-      if (isOverLimit && isWriteQuery) {
-        throw new Error(
-          `Database size limit of 50MB reached. Only SELECT, DELETE and DROP operations are allowed to free up space. Current size: ${(dbFileSize / (1024 * 1024)).toFixed(2)}MB`,
+      // Storage limit: check DB size (50MB)
+      if (isWriteQuery) {
+        const [sizeRow] = await pool.query(
+          "SELECT SUM(data_length + index_length) AS size FROM information_schema.tables WHERE table_schema = DATABASE();",
         );
+        const dbFileSize = sizeRow.size || 0;
+        const MAX_DB_SIZE_BYTES = 50 * 1024 * 1024;
+        if (dbFileSize > MAX_DB_SIZE_BYTES) {
+          throw new Error(
+            `Database size limit of 50MB reached. Only SELECT, DELETE and DROP operations are allowed to free up space. Current size: ${(dbFileSize / (1024 * 1024)).toFixed(2)}MB`,
+          );
+        }
       }
 
       if (
@@ -72,13 +74,8 @@ export async function executeQuery(query: string) {
       }
 
       if (lowerCaseQuery.startsWith("select")) {
-        const stmt = db.prepare(singleQuery);
-        const resultRows = stmt.all();
-        const columns =
-          resultRows.length > 0
-            ? Object.keys(resultRows[0] as Record<string, unknown>)
-            : stmt.columns()?.map((col) => col.name) || [];
-
+        const resultRows = await pool.query(singleQuery);
+        const columns = resultRows.length > 0 ? Object.keys(resultRows[0]) : [];
         lastSelectResult = {
           columns,
           rows: resultRows,
@@ -88,9 +85,8 @@ export async function executeQuery(query: string) {
           `SELECT query returned ${resultRows.length} row(s).`,
         );
       } else {
-        const stmt = db.prepare(singleQuery);
-        const runResult = stmt.run();
-        const changes = runResult.changes !== undefined ? runResult.changes : 0;
+        const runResult = await pool.query(singleQuery);
+        const changes = runResult.affectedRows || 0;
         changesAccumulator += changes;
         messagesAccumulator.push(
           `${changes} row(s) affected by non-SELECT query.`,
@@ -98,7 +94,7 @@ export async function executeQuery(query: string) {
       }
     }
 
-    db.close();
+    pool.end();
     revalidatePath("/");
 
     // If there was a SELECT query, return its results (typically the last one executed)
@@ -126,9 +122,7 @@ export async function executeQuery(query: string) {
       };
     }
   } catch (error) {
-    if (db) {
-      db.close();
-    }
+    if (pool) pool.end();
     const specificErrorMessage =
       error instanceof Error ? error.message : String(error);
     console.error(`[${username}.db] SQL Error:`, specificErrorMessage, error); // Log the original error too for stack trace
@@ -138,9 +132,9 @@ export async function executeQuery(query: string) {
       userMessage = `Incomplete SQL statement. Make sure your statement is complete and includes all required parts. Original Error: ${specificErrorMessage}`;
     } else if (specificErrorMessage.includes("syntax error")) {
       userMessage = `Syntax error in your SQL statement. Check your syntax and try again. Original Error: ${specificErrorMessage}`;
-    } else if (specificErrorMessage.includes("no such table")) {
+    } else if (specificErrorMessage.includes("doesn't exist")) {
       const tableName = specificErrorMessage.match(
-        /no such table: ([^\s]+)/,
+        /Table '.*?\.(.*?)' doesn't exist/,
       )?.[1];
       userMessage = `Table '${tableName || "unknown"}' does not exist. Create it first or check the table name. Original Error: ${specificErrorMessage}`;
     }
@@ -161,28 +155,25 @@ export async function getDatabaseInfo() {
     throw new Error("Authentication required");
   }
   const username = session.user.email.split("@")[0]; // For logging
-  let db;
+  let pool;
 
   try {
     // Get the user-specific database
-    db = await getUserDb();
+    pool = await getUserDb();
 
     // Get all tables
-    const tables = db
-      .prepare("SELECT name FROM sqlite_master WHERE type='table'")
-      .all();
+    const tables = await pool.query("SHOW TABLES");
+    const tableNames = tables.map((row: any) => Object.values(row)[0]);
 
     const dbInfo = {
-      tables: tables.map((t: any) => t.name),
-      tableCount: tables.length,
+      tables: tableNames,
+      tableCount: tableNames.length,
     };
 
-    db.close();
+    pool.end();
     return dbInfo;
   } catch (error) {
-    if (db) {
-      db.close();
-    }
+    if (pool) pool.end();
     const specificErrorMessage =
       error instanceof Error ? error.message : String(error);
     console.error(

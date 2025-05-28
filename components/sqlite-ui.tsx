@@ -57,6 +57,16 @@ export function SQLiteUI() {
         const info = await getDatabaseInfo();
         setDbInfo(info);
       }
+
+      // Call heartbeat API to update last used time
+      try {
+        await fetch("/api/db/heartbeat", {
+          method: "POST",
+          credentials: "include",
+        });
+      } catch (e) {
+        console.warn("Failed to update DB heartbeat", e);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setResults(null);
@@ -71,6 +81,13 @@ export function SQLiteUI() {
 
       <FloatingNavbar />
 
+      {dbInfoLoading && (
+        <div className="absolute left-1/2 top-24 z-50 -translate-x-1/2 bg-yellow-100 text-yellow-800 px-6 py-3 rounded-xl shadow-lg border border-yellow-300 font-medium flex items-center gap-2">
+          <span className="animate-spin">⏳</span> Database is starting, please
+          wait...
+        </div>
+      )}
+
       <FloatingCommandPanel
         query={query}
         setQuery={setQuery}
@@ -81,9 +98,7 @@ export function SQLiteUI() {
         dbInfoLoading={dbInfoLoading}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        result={
-          results ? results : error ? { error: true, message: error } : null
-        }
+        dbDisabled={dbInfoLoading}
       />
 
       <FloatingResultsPanel results={results} loading={loading} error={error} />

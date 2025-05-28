@@ -34,6 +34,7 @@ interface FloatingCommandPanelProps {
   dbInfoLoading: boolean;
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  dbDisabled?: boolean;
 }
 
 export function FloatingCommandPanel({
@@ -46,6 +47,7 @@ export function FloatingCommandPanel({
   dbInfoLoading,
   activeTab,
   setActiveTab,
+  dbDisabled = false,
 }: FloatingCommandPanelProps) {
   const [showHistory, setShowHistory] = useState(false);
   const router = useRouter();
@@ -68,13 +70,23 @@ export function FloatingCommandPanel({
       transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
     >
       <motion.div
-        className="h-full bg-[var(--card)]/90 backdrop-blur-xl border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-xl"
+        className="h-full bg-[var(--card)]/90 backdrop-blur-xl border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-xl relative"
         whileHover={{
           y: -4,
           boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.15)",
         }}
         transition={{ duration: 0.3 }}
       >
+        {dbDisabled && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center rounded-2xl pointer-events-auto bg-background/80">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-12 h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin" />
+              <span className="text-blue-700 dark:text-blue-300 font-semibold text-lg animate-pulse">
+                Database is starting...
+              </span>
+            </div>
+          </div>
+        )}
         <Tabs
           value={activeTab}
           onValueChange={setActiveTab}
@@ -241,6 +253,7 @@ export function FloatingCommandPanel({
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Enter SQL query..."
                 className="h-full font-mono text-sm resize-none border-input bg-background focus:bg-background transition-colors text-foreground placeholder:text-muted-foreground"
+                disabled={dbDisabled}
               />
             </motion.div>
 
@@ -258,6 +271,7 @@ export function FloatingCommandPanel({
                   variant="outline"
                   onClick={() => setQuery("")}
                   className="border-gray-300 dark:border-gray-600 hover:bg-gray-700 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white text-gray-700 dark:text-gray-300 transition-colors"
+                  disabled={dbDisabled}
                 >
                   Clear
                 </Button>
@@ -266,22 +280,30 @@ export function FloatingCommandPanel({
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                <Button
-                  onClick={runQuery}
-                  disabled={loading || !query.trim()}
-                  className="gap-2 bg-green-600 hover:bg-green-700 text-white shadow-lg"
-                >
-                  <motion.div
-                    animate={loading ? { rotate: 360 } : {}}
-                    transition={{
-                      duration: 1,
-                      repeat: loading ? Number.POSITIVE_INFINITY : 0,
-                    }}
-                  >
-                    <Play className="h-4 w-4" />
-                  </motion.div>
-                  <span style={{ color: "#fff" }}>Run Query</span>
-                </Button>
+                <TooltipProvider>
+                  <Tooltip open={dbDisabled ? true : undefined}>
+                    <TooltipTrigger asChild>
+                      <span>
+                        <Button
+                          onClick={runQuery}
+                          disabled={loading || !query.trim() || dbDisabled}
+                          className="gap-2 bg-green-600 hover:bg-green-700 text-white shadow-lg"
+                        >
+                          <motion.div
+                            animate={loading ? { rotate: 360 } : {}}
+                            transition={{
+                              duration: 1,
+                              repeat: loading ? Number.POSITIVE_INFINITY : 0,
+                            }}
+                          >
+                            <Play className="h-4 w-4" />
+                          </motion.div>
+                          <span style={{ color: "#fff" }}>Run Query</span>
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                  </Tooltip>
+                </TooltipProvider>
               </motion.div>
             </motion.div>
 
@@ -300,12 +322,14 @@ export function FloatingCommandPanel({
                     {
                       text: "Show all tables",
                       query:
-                        "SELECT name FROM sqlite_master WHERE type='table';",
+                        "SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE();",
                     },
                     {
                       text: "Create test table",
-                      query:
-                        "CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT);",
+                      query: `CREATE TABLE test (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(255)
+);`,
                     },
                   ].map((example, i) => (
                     <motion.li
@@ -444,9 +468,9 @@ export function FloatingCommandPanel({
                     className="bg-green-600 hover:bg-green-700 text-white shadow-lg"
                     onClick={() => {
                       setQuery(`CREATE TABLE users (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL,
-  email TEXT UNIQUE,
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) UNIQUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );`);
                       setActiveTab("query");
