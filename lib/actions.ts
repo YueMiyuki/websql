@@ -3,7 +3,8 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
-import { getUserDb } from "@/lib/db";
+import { getUserDb, updateLastUsed } from "@/lib/db";
+import { log } from "@/lib/logger";
 
 export async function executeQuery(query: string) {
   const session = await getServerSession(authOptions);
@@ -15,7 +16,6 @@ export async function executeQuery(query: string) {
   let pool;
 
   try {
-    console.log(`[${username}.db] Executing query batch:`, query);
     // Split queries by semicolon, filter out empty ones, and ensure each ends with a semicolon for individual execution
     const queries = query
       .trim()
@@ -23,6 +23,11 @@ export async function executeQuery(query: string) {
       .map((q) => q.trim())
       .filter((q) => q.length > 0)
       .map((q) => (q.endsWith(";") ? q : `${q};`));
+
+    // Only log batch if there are multiple queries
+    if (queries.length > 1) {
+      log(`[${username}.db] Executing query batch: ${query}`, "info-batch");
+    }
 
     if (queries.length === 0) {
       return {
@@ -41,7 +46,7 @@ export async function executeQuery(query: string) {
 
     for (const singleQuery of queries) {
       // No need to normalize again as it's done during splitting
-      console.log(`[${username}.db] Executing single query:`, singleQuery);
+      log(`[${username}.db] Executing single query: ${singleQuery}`, "info");
 
       const lowerCaseQuery = singleQuery.toLowerCase();
       const isWriteQuery =
@@ -95,6 +100,8 @@ export async function executeQuery(query: string) {
     }
 
     pool.end();
+    // Directly update last used time after query
+    updateLastUsed(username);
     revalidatePath("/");
 
     // If there was a SELECT query, return its results (typically the last one executed)
@@ -125,7 +132,7 @@ export async function executeQuery(query: string) {
     if (pool) pool.end();
     const specificErrorMessage =
       error instanceof Error ? error.message : String(error);
-    console.error(`[${username}.db] SQL Error:`, specificErrorMessage, error); // Log the original error too for stack trace
+    log(`[${username}.db] SQL Error: ${specificErrorMessage}`, "error"); // Log the original error too for stack trace
 
     let userMessage = specificErrorMessage;
     if (specificErrorMessage.includes("incomplete input")) {
@@ -176,10 +183,9 @@ export async function getDatabaseInfo() {
     if (pool) pool.end();
     const specificErrorMessage =
       error instanceof Error ? error.message : String(error);
-    console.error(
-      `[${username}.db] Database Info Error:`,
-      specificErrorMessage,
-      error,
+    log(
+      `[${username}.db] Database Info Error: ${specificErrorMessage}`,
+      "error",
     );
     throw new Error(
       `[${username}.db] Error getting database info: ${specificErrorMessage}`,

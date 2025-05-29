@@ -57,16 +57,6 @@ export function SQLiteUI() {
         const info = await getDatabaseInfo();
         setDbInfo(info);
       }
-
-      // Call heartbeat API to update last used time
-      try {
-        await fetch("/api/db/heartbeat", {
-          method: "POST",
-          credentials: "include",
-        });
-      } catch (e) {
-        console.warn("Failed to update DB heartbeat", e);
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setResults(null);

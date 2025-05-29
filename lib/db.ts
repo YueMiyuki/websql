@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import path from "path";
 import fs from "fs";
+import { log } from "@/lib/logger";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const MARIADB_IMAGE = "mariadb:lts";
@@ -92,6 +93,25 @@ function setLastUsed(username: string, timestamp: number) {
   }
   map[username] = timestamp;
   fs.writeFileSync(file, JSON.stringify(map, null, 2));
+}
+
+export async function updateLastUsed(username: string) {
+  const DATA_DIR = path.join(process.cwd(), "data");
+  const LAST_USED_FILE = path.join(DATA_DIR, "last_used.json");
+  let lastUsedMap: Record<string, number> = {};
+  if (fs.existsSync(LAST_USED_FILE)) {
+    try {
+      lastUsedMap = JSON.parse(fs.readFileSync(LAST_USED_FILE, "utf-8"));
+    } catch {
+      lastUsedMap = {};
+    }
+  }
+  lastUsedMap[username] = Math.floor(Date.now() / 1000);
+  fs.writeFileSync(LAST_USED_FILE, JSON.stringify(lastUsedMap, null, 2));
+  log(
+    `[MariaDB] Last use for user ${username} updated to ${lastUsedMap[username]}`,
+    "info",
+  );
 }
 
 export async function ensureUserDbContainer(username: string) {
@@ -209,14 +229,16 @@ export async function shutdownIdleContainers() {
     const state = containerStateMap[username] || "running";
     // Sanity check for lastUsed
     if (lastUsed > now || idleSeconds < 0 || idleSeconds > 365 * 24 * 60 * 60) {
-      console.warn(
+      log(
         `[MariaDB] Skipping container ${container} for user ${username}: suspicious lastUsed value (${lastUsed}), now=${now}`,
+        "warn",
       );
       continue;
     }
     if (idleSeconds > IDLE_TIMEOUT_MINUTES * 60 && state === "running") {
-      console.log(
+      log(
         `[MariaDB] Stopping container ${container} for user ${username} due to idle timeout (${idleSeconds} seconds > ${IDLE_TIMEOUT_MINUTES * 60} seconds)`,
+        "info",
       );
       runDockerCmd(`docker stop ${container}`);
       setContainerState(username, "stopped");
@@ -256,17 +278,19 @@ export async function getUserDatabases() {
 // Schedule shutdownIdleContainers to run every 5 minutes (300,000 ms)
 if (typeof process !== "undefined") {
   if (IDLE_TIMEOUT_MINUTES > 0) {
-    console.log(
+    log(
       "[MariaDB] Starting idle container shutdown scheduler (every 5 minutes)",
+      "info",
     );
     setInterval(() => {
       shutdownIdleContainers().catch((err) => {
-        console.error("[MariaDB] Error in shutdownIdleContainers:", err);
+        log(`[MariaDB] Error in shutdownIdleContainers: ${err}`, "error");
       });
     }, 60 * 1000);
   } else {
-    console.log(
+    log(
       "[MariaDB] Idle container shutdown scheduler is disabled (MARIADB_IDLE_TIMEOUT_MINUTES=0)",
+      "info",
     );
   }
 }
