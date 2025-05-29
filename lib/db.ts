@@ -275,7 +275,7 @@ export async function getUserDatabases() {
   return {};
 }
 
-// Schedule shutdownIdleContainers to run every 5 minutes (300,000 ms)
+// Schedule shutdownIdleContainers
 if (typeof process !== "undefined") {
   if (IDLE_TIMEOUT_MINUTES > 0) {
     log(
