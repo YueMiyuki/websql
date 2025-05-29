@@ -62,9 +62,14 @@ export async function executeQuery(query: string) {
         );
         const dbFileSize = sizeRow.size || 0;
         const MAX_DB_SIZE_BYTES = 50 * 1024 * 1024;
-        if (dbFileSize > MAX_DB_SIZE_BYTES) {
+        // Allow DELETE and DROP even if DB is full
+        if (
+          dbFileSize > MAX_DB_SIZE_BYTES &&
+          !lowerCaseQuery.startsWith("delete") &&
+          !lowerCaseQuery.startsWith("drop")
+        ) {
           throw new Error(
-            `Database size limit of 50MB reached. Only SELECT, DELETE and DROP operations are allowed to free up space. Current size: ${(dbFileSize / (1024 * 1024)).toFixed(2)}MB`,
+            `Database size limit of 50MB reached. Only SELECT, DELETE, and DROP operations are allowed to free up space. Current size: ${(dbFileSize / (1024 * 1024)).toFixed(2)}MB`,
           );
         }
       }

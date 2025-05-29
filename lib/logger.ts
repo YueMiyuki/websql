@@ -1,6 +1,6 @@
 import chalk from "chalk";
 
-export type LogType = "info" | "info-batch" | "warn" | "error" | "debug" | "ci";
+export type LogType = "info" | "info-batch" | "warn" | "error" | "debug" | "update";
 
 function formatDate(): string {
   const dateObject = new Date();
@@ -31,11 +31,11 @@ export function log(message: string, type: LogType = "info"): void {
     case "debug":
       console.log(formattedDate, chalk.green(`[DEBUG] ${message}`));
       break;
-    case "ci":
-      console.log(formattedDate, chalk.cyan(`[CI] ${message}`));
+    case "update":
+      console.log(formattedDate, chalk.cyan(`[INFO] ${message}`));
       break;
     default:
-      console.log(formattedDate, chalk.blue(`[INFO] ${message}`));
+      console.log(formattedDate, chalk.blue(`[WATCHER] ${message}`));
       type = "info";
   }
 }

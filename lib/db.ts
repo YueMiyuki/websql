@@ -5,8 +5,8 @@ import { execSync } from "child_process";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import path from "path";
-import fs from "fs";
 import { log } from "@/lib/logger";
+import { promises as fsp } from "fs";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const MARIADB_IMAGE = "mariadb:lts";
@@ -44,73 +44,29 @@ function runDockerCmd(cmd: string) {
   return execSync(cmd, { stdio: "pipe" }).toString();
 }
 
-// Helper to get last used times from a JSON file
-function getLastUsedMap() {
-  const file = path.join(DATA_DIR, "last_used.json");
-  if (!fs.existsSync(file)) return {};
+// Helper to read/write JSON files generically
+async function readJsonFile<T>(file: string, fallback: T): Promise<T> {
   try {
-    return JSON.parse(fs.readFileSync(file, "utf-8"));
+    await fsp.access(file);
+    const data = await fsp.readFile(file, "utf-8");
+    return JSON.parse(data);
   } catch {
-    return {};
+    return fallback;
   }
 }
 
-// Helper to get/set container state
-function getContainerStateMap(): Record<string, string> {
-  const file = path.join(DATA_DIR, "container_state.json");
-  if (!fs.existsSync(file)) return {};
-  try {
-    return JSON.parse(fs.readFileSync(file, "utf-8"));
-  } catch {
-    return {};
-  }
-}
-
-function setContainerState(username: string, state: "running" | "stopped") {
-  const file = path.join(DATA_DIR, "container_state.json");
-  let map: Record<string, string> = {};
-  if (fs.existsSync(file)) {
-    try {
-      map = JSON.parse(fs.readFileSync(file, "utf-8"));
-    } catch {
-      map = {};
-    }
-  }
-  map[username] = state;
-  fs.writeFileSync(file, JSON.stringify(map, null, 2));
-}
-
-// Helper to set last used time
-function setLastUsed(username: string, timestamp: number) {
-  const file = path.join(DATA_DIR, "last_used.json");
-  let map: Record<string, number> = {};
-  if (fs.existsSync(file)) {
-    try {
-      map = JSON.parse(fs.readFileSync(file, "utf-8"));
-    } catch {
-      map = {};
-    }
-  }
-  map[username] = timestamp;
-  fs.writeFileSync(file, JSON.stringify(map, null, 2));
+async function writeJsonFile<T>(file: string, data: T) {
+  await fsp.writeFile(file, JSON.stringify(data, null, 2));
 }
 
 export async function updateLastUsed(username: string) {
-  const DATA_DIR = path.join(process.cwd(), "data");
   const LAST_USED_FILE = path.join(DATA_DIR, "last_used.json");
-  let lastUsedMap: Record<string, number> = {};
-  if (fs.existsSync(LAST_USED_FILE)) {
-    try {
-      lastUsedMap = JSON.parse(fs.readFileSync(LAST_USED_FILE, "utf-8"));
-    } catch {
-      lastUsedMap = {};
-    }
-  }
+  let lastUsedMap = await readJsonFile<Record<string, number>>(LAST_USED_FILE, {});
   lastUsedMap[username] = Math.floor(Date.now() / 1000);
-  fs.writeFileSync(LAST_USED_FILE, JSON.stringify(lastUsedMap, null, 2));
+  await writeJsonFile(LAST_USED_FILE, lastUsedMap);
   log(
     `[MariaDB] Last use for user ${username} updated to ${lastUsedMap[username]}`,
-    "info",
+    "update",
   );
 }
 
@@ -129,8 +85,6 @@ export async function ensureUserDbContainer(username: string) {
       `docker inspect -f '{{.State.Running}}' ${container}`,
     ).trim();
     if (status === "true") {
-      setContainerState(username, "running");
-      setLastUsed(username, Math.floor(Date.now() / 1000));
       return { port, dbName };
     }
   } catch {}
@@ -140,8 +94,6 @@ export async function ensureUserDbContainer(username: string) {
     runDockerCmd(`docker inspect ${container}`);
     // Exists but not running, start it
     runDockerCmd(`docker start ${container}`);
-    setContainerState(username, "running");
-    setLastUsed(username, Math.floor(Date.now() / 1000));
     return { port, dbName };
   } catch {}
 
@@ -152,7 +104,7 @@ export async function ensureUserDbContainer(username: string) {
   while (triedPorts < maxTries) {
     try {
       runDockerCmd(
-        `docker run -d --name ${container} -e MARIADB_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD} -e MARIADB_DATABASE=${dbName} -v ${volume}:/var/lib/mysql -p ${port}:3306 ${MARIADB_IMAGE}`,
+        `docker run --rm -d --name ${container} -e MARIADB_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD} -e MARIADB_DATABASE=${dbName} -v ${volume}:/var/lib/mysql -p ${port}:3306 ${MARIADB_IMAGE}`,
       );
       // Wait for MariaDB to be ready
       let ready = false;
@@ -175,8 +127,6 @@ export async function ensureUserDbContainer(username: string) {
         }
       }
       if (!ready) throw new Error("MariaDB container did not start in time");
-      setContainerState(username, "running");
-      setLastUsed(username, Math.floor(Date.now() / 1000));
       return { port, dbName };
     } catch (err) {
       lastError = err;
@@ -184,6 +134,7 @@ export async function ensureUserDbContainer(username: string) {
       triedPorts++;
     }
   }
+  log(`Failed to start MariaDB container for user ${username}: ${lastError instanceof Error ? lastError.stack : String(lastError)}`,"error");
   throw new Error(
     `Failed to start MariaDB container for user ${username}: All attempted ports are occupied. Last error: ${lastError}`,
   );
@@ -215,19 +166,17 @@ export async function shutdownIdleContainers() {
   const validUsernames = new Set(
     containers.map((c) => c.replace(/^mariadb_/, "")),
   );
-  const lastUsedMap = getLastUsedMap();
+  const lastUsedMap = await readJsonFile<Record<string, number>>(path.join(DATA_DIR, "last_used.json"), {});
   const now = Math.floor(Date.now() / 1000);
-  const containerStateMap: Record<string, string> = getContainerStateMap();
+  const containerStateMap: Record<string, string> = await readJsonFile(path.join(DATA_DIR, "container_state.json"), {});
   for (const container of containers) {
     const username = container.replace(/^mariadb_/, "");
     const lastUsed = lastUsedMap[username];
     if (lastUsed === undefined) {
-      // No activity ever recorded for this user/container, skip.
       continue;
     }
     const idleSeconds = now - lastUsed;
     const state = containerStateMap[username] || "running";
-    // Sanity check for lastUsed
     if (lastUsed > now || idleSeconds < 0 || idleSeconds > 365 * 24 * 60 * 60) {
       log(
         `[MariaDB] Skipping container ${container} for user ${username}: suspicious lastUsed value (${lastUsed}), now=${now}`,
@@ -241,7 +190,7 @@ export async function shutdownIdleContainers() {
         "info",
       );
       runDockerCmd(`docker stop ${container}`);
-      setContainerState(username, "stopped");
+      containerStateMap[username] = "stopped";
     }
   }
   // Clean up state for containers that no longer exist
@@ -259,14 +208,8 @@ export async function shutdownIdleContainers() {
     }
   }
   if (changed) {
-    fs.writeFileSync(
-      path.join(DATA_DIR, "container_state.json"),
-      JSON.stringify(containerStateMap, null, 2),
-    );
-    fs.writeFileSync(
-      path.join(DATA_DIR, "last_used.json"),
-      JSON.stringify(lastUsedMap, null, 2),
-    );
+    await writeJsonFile(path.join(DATA_DIR, "container_state.json"), containerStateMap);
+    await writeJsonFile(path.join(DATA_DIR, "last_used.json"), lastUsedMap);
   }
 }
 
@@ -282,11 +225,23 @@ if (typeof process !== "undefined") {
       "[MariaDB] Starting idle container shutdown scheduler (every 5 minutes)",
       "info",
     );
+    // Reset last_used.json and container_state.json on server start
+    (async () => {
+      try {
+        const lastUsedFile = path.join(DATA_DIR, "last_used.json");
+        const stateFile = path.join(DATA_DIR, "container_state.json");
+        await fsp.writeFile(lastUsedFile, JSON.stringify({}, null, 2));
+        await fsp.writeFile(stateFile, JSON.stringify({}, null, 2));
+        log("[MariaDB] Reset last_used.json and container_state.json", "info");
+      } catch (err) {
+        log(`[MariaDB] Error resetting state files: ${err}`, "error");
+      }
+    })();
     setInterval(() => {
       shutdownIdleContainers().catch((err) => {
         log(`[MariaDB] Error in shutdownIdleContainers: ${err}`, "error");
       });
-    }, 60 * 1000);
+    },  5 * 60 * 1000);
   } else {
     log(
       "[MariaDB] Idle container shutdown scheduler is disabled (MARIADB_IDLE_TIMEOUT_MINUTES=0)",
@@ -294,3 +249,4 @@ if (typeof process !== "undefined") {
     );
   }
 }
+

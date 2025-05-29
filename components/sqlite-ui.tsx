@@ -14,10 +14,27 @@ export function SQLiteUI() {
   const [results, setResults] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [history, setHistory] = useState<string[]>([]);
+  const [history, setHistory] = useState<string[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("sqlite_query_history");
+        return stored ? JSON.parse(stored) : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  });
   const [dbInfo, setDbInfo] = useState<any>(null);
   const [dbInfoLoading, setDbInfoLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("query");
+
+  // Persist history to localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("sqlite_query_history", JSON.stringify(history));
+    }
+  }, [history]);
 
   // Load database info on mount
   useEffect(() => {
@@ -49,7 +66,11 @@ export function SQLiteUI() {
 
       // Add to history if not already present
       if (!history.includes(query)) {
-        setHistory((prev) => [query, ...prev].slice(0, 20));
+        setHistory((prev) => {
+          const newHistory = [query, ...prev].slice(0, 20);
+          localStorage.setItem("sqlite_query_history", JSON.stringify(newHistory));
+          return newHistory;
+        });
       }
 
       // Refresh database info after mutation queries
@@ -71,7 +92,7 @@ export function SQLiteUI() {
 
       <FloatingNavbar />
 
-      {dbInfoLoading && (
+      {session?.user && dbInfoLoading && (
         <div className="absolute left-1/2 top-24 z-50 -translate-x-1/2 bg-yellow-100 text-yellow-800 px-6 py-3 rounded-xl shadow-lg border border-yellow-300 font-medium flex items-center gap-2">
           <span className="animate-spin">⏳</span> Database is starting, please
           wait...
