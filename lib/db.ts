@@ -61,7 +61,11 @@ async function writeJsonFile<T>(file: string, data: T) {
 
 export async function updateLastUsed(username: string) {
   const LAST_USED_FILE = path.join(DATA_DIR, "last_used.json");
-  let lastUsedMap = await readJsonFile<Record<string, number>>(LAST_USED_FILE, {});
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let lastUsedMap = await readJsonFile<Record<string, number>>(
+    LAST_USED_FILE,
+    {},
+  );
   lastUsedMap[username] = Math.floor(Date.now() / 1000);
   await writeJsonFile(LAST_USED_FILE, lastUsedMap);
   log(
@@ -134,7 +138,10 @@ export async function ensureUserDbContainer(username: string) {
       triedPorts++;
     }
   }
-  log(`Failed to start MariaDB container for user ${username}: ${lastError instanceof Error ? lastError.stack : String(lastError)}`,"error");
+  log(
+    `Failed to start MariaDB container for user ${username}: ${lastError instanceof Error ? lastError.stack : String(lastError)}`,
+    "error",
+  );
   throw new Error(
     `Failed to start MariaDB container for user ${username}: All attempted ports are occupied. Last error: ${lastError}`,
   );
@@ -166,9 +173,15 @@ export async function shutdownIdleContainers() {
   const validUsernames = new Set(
     containers.map((c) => c.replace(/^mariadb_/, "")),
   );
-  const lastUsedMap = await readJsonFile<Record<string, number>>(path.join(DATA_DIR, "last_used.json"), {});
+  const lastUsedMap = await readJsonFile<Record<string, number>>(
+    path.join(DATA_DIR, "last_used.json"),
+    {},
+  );
   const now = Math.floor(Date.now() / 1000);
-  const containerStateMap: Record<string, string> = await readJsonFile(path.join(DATA_DIR, "container_state.json"), {});
+  const containerStateMap: Record<string, string> = await readJsonFile(
+    path.join(DATA_DIR, "container_state.json"),
+    {},
+  );
   for (const container of containers) {
     const username = container.replace(/^mariadb_/, "");
     const lastUsed = lastUsedMap[username];
@@ -208,7 +221,10 @@ export async function shutdownIdleContainers() {
     }
   }
   if (changed) {
-    await writeJsonFile(path.join(DATA_DIR, "container_state.json"), containerStateMap);
+    await writeJsonFile(
+      path.join(DATA_DIR, "container_state.json"),
+      containerStateMap,
+    );
     await writeJsonFile(path.join(DATA_DIR, "last_used.json"), lastUsedMap);
   }
 }
@@ -237,11 +253,14 @@ if (typeof process !== "undefined") {
         log(`[MariaDB] Error resetting state files: ${err}`, "error");
       }
     })();
-    setInterval(() => {
-      shutdownIdleContainers().catch((err) => {
-        log(`[MariaDB] Error in shutdownIdleContainers: ${err}`, "error");
-      });
-    },  5 * 60 * 1000);
+    setInterval(
+      () => {
+        shutdownIdleContainers().catch((err) => {
+          log(`[MariaDB] Error in shutdownIdleContainers: ${err}`, "error");
+        });
+      },
+      5 * 60 * 1000,
+    );
   } else {
     log(
       "[MariaDB] Idle container shutdown scheduler is disabled (MARIADB_IDLE_TIMEOUT_MINUTES=0)",
@@ -249,4 +268,3 @@ if (typeof process !== "undefined") {
     );
   }
 }
-

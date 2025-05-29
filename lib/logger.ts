@@ -1,6 +1,12 @@
 import chalk from "chalk";
 
-export type LogType = "info" | "info-batch" | "warn" | "error" | "debug" | "update";
+export type LogType =
+  | "info"
+  | "info-batch"
+  | "warn"
+  | "error"
+  | "debug"
+  | "update";
 
 function formatDate(): string {
   const dateObject = new Date();

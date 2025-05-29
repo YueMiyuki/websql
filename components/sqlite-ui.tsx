@@ -68,7 +68,10 @@ export function SQLiteUI() {
       if (!history.includes(query)) {
         setHistory((prev) => {
           const newHistory = [query, ...prev].slice(0, 20);
-          localStorage.setItem("sqlite_query_history", JSON.stringify(newHistory));
+          localStorage.setItem(
+            "sqlite_query_history",
+            JSON.stringify(newHistory),
+          );
           return newHistory;
         });
       }
